@@ -11,10 +11,10 @@ def readData(file):
 
 def prune(data, dim):
     pruned = {}
-    if dim == 2:
+    if dim == 3:
         for d in data:
             pruned[d['name']] = d['state']+'\t'+str(d['latitude'])+'\t'+str(d['longitude'])+'\t'+str(d['stars'])+'\t'+str(d['review_count'])+'\t'+str(d['categories'])
-    elif dim == 3:
+    elif dim == 2:
         for d in data:
             pruned[d['name']] = d['state']+'\t'+d['postal_code']+'\t'+str(d['stars'])+'\t'+str(d['review_count'])+'\t'+str(d['categories'])
     return pruned
