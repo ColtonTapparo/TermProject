@@ -46,7 +46,12 @@ public class Driver {
 //				.config("spark.master", master)
 				.config("spark.master", local)
 				.getOrCreate();
-		parseFile(spark, args);
+		JavaPairRDD<String, Iterable<String>> data = parseFile(spark, args);
+		System.out.println("===========================================================CHECK========================================================");
+		System.out.println("================================================== data size: " + data.collect().size() + " ======================================================");
+		System.out.println("====================================================================== Begin 3D Clustering ========================================================");
+		// run 3DClustering
+		Cluster3D.kMeansCluster(data);
 	}
 
 	private static String getLocalCurrentDate() {
