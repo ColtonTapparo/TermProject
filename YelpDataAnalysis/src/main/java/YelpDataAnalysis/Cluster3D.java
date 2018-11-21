@@ -183,19 +183,77 @@ public class Cluster3D {
         return data.take(k);
     }
 
-    // This method will sort each business into
+    /* This method will sort each business into the most similar cluster. To do this, I plan to compare
+    each dimension (lat, lon, rating) and normalize the comparison.
+
+    -90 <= lat <= 90
+    -180 <= lon <= 180
+    1 <= rating <= 5
+
+    I shall normalize these values into a comparison between 0 & 1
+    and I will add these 3 valuse together to get a result between 0 & 3
+   */
+
+    // This returns a JavaPairRDD such that...
+    /*
+            Business -> ClusterID,
+                        State,
+                        latitude,
+                        longitude,
+                        Yelp rating,
+                        Number of reviews,
+                        Categories
+
+
+     */
+
     public JavaPairRDD<String, Iterable<String>> classify(List<Tuple2<String, Iterable<String>>> classes, JavaPairRDD<String, Iterable<String>> data){
         data.mapToPair(s->{
+            //double[] comps = new double[classes.size()];
+            double min = 10;
+            int targetCluster = 20;
+            Iterator<String> iter1 = s._2().iterator();
+            iter1.next(); // state
+            String lat1 = iter1.next();
+            String lon1 = iter1.next();
+            String rating1 = iter1.next();
+            double lat1Norm = Double.parseDouble(lat1);
+            double lon1Norm = Double.parseDouble(lon1);
+            double rating1Norm = Double.parseDouble(rating1);
+            lat1Norm = (lat1Norm + 90)/180;
+            lon1Norm = (lon1Norm + 180)/360;
+            rating1Norm = rating1Norm/5;
+            double score1 = lat1Norm + lon1Norm + rating1Norm;
             for(int i = 0; i < classes.size(); i++){
                 Tuple2<String, Iterable<String>> tmp = classes.get(i);
-                Iterator<String> iter1 = s._2().iterator();
-                iter1.next(); // state
-                String lat1 = iter1.next();
-                String lon1 = iter1.next();
-                String rating1 = iter1.next();
-                double r1 = Double.parseDouble(rating1);
+
+                Iterator<String> iter2 = tmp._2.iterator();
+                iter2.next(); // state
+                String lat2 = iter2.next();
+                String lon2 = iter2.next();
+                String rating2 = iter2.next();
+                double lat2Norm = Double.parseDouble(lat2);
+                double lon2Norm = Double.parseDouble(lon2);
+                double rating2Norm = Double.parseDouble(rating2);
+                lat2Norm = (lat2Norm + 90)/180;
+                lon2Norm = (lon2Norm + 180)/360;
+                rating2Norm = rating2Norm/5;
+                double score2 = lat2Norm + lon2Norm + rating2Norm;
+
+                double score = Math.abs(score1 - score2);
+                if(score < min){
+                    min = score;
+                    targetCluster = i;
+                }
+
+
 
             }
+
+
+            // Write the new target cluster as the first element in the Iterable<String>.
+
+
            return s;
         });
         return null;
