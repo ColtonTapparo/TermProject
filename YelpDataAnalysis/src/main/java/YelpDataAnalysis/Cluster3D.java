@@ -5,6 +5,7 @@ import org.codehaus.janino.Java;
 import scala.Tuple2;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -208,7 +209,7 @@ public class Cluster3D {
      */
 
     public JavaPairRDD<String, Iterable<String>> classify(List<Tuple2<String, Iterable<String>>> classes, JavaPairRDD<String, Iterable<String>> data){
-        data.mapToPair(s->{
+        JavaPairRDD<String, Iterable<String>> clusters = data.mapToPair(s->{
             //double[] comps = new double[classes.size()];
             double min = 10;
             int targetCluster = 20;
@@ -250,12 +251,17 @@ public class Cluster3D {
 
             }
 
-
             // Write the new target cluster as the first element in the Iterable<String>.
+            ArrayList<String> vals = new ArrayList<String>();
+            vals.add("" + targetCluster);
+            Iterator<String> iter = s._2.iterator();
+            while(iter.hasNext()){
+                vals.add(iter.next());
+            }
 
 
-           return s;
+           return new Tuple2<String, Iterable<String>>(s._1, vals);
         });
-        return null;
+        return clusters;
     }
 }
