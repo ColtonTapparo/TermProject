@@ -57,7 +57,7 @@ public class Cluster3D {
         For this, you will associate each business with one cluster most similar to itself.
 
     Step 3) Use the classification obtained in step 2 to recompute the vectors of means m(t+1)
-
+        For this, you will create
 
 
     */
@@ -71,50 +71,13 @@ public class Cluster3D {
 
 
 
-        // Step 2)
 
-        /*
-        //      Sample by state
-        JavaPairRDD<String,Iterable<String>> stateMap = data.mapToPair(s -> {
-            Iterator iter = s._2.iterator();
-            String key = null;
-            String lat = null;
-            String lon = null;
-            String rating = null;
-            String num = null;
-            String cat = null;
-            int i = 0;
+        // Step 2) classify each business in data according to the business in sample
+        // which it is most similar to.
 
-            while(iter.hasNext()){
-                String next = iter.next().toString();
-                if(i==0){
-                    key = next;
-                }else if(i == 1){
-                    lat = next;
-                }else if(i == 2){
-                    lon = next;
-                }else if(i == 3){
-                    rating = next;
-                }else if(i == 4){
-                    num = next;
-                }else if(i == 5){
-                    cat = next;
-                }
-                i++;
-            }
+       JavaPairRDD<String, Iterable<String>> clusters = classify(sample, data);
 
-            String[] vals = new String[6];
-            vals[0] = s._1;
-            vals[1] = lat;
-            vals[2] = lon;
-            vals[3] = rating;
-            vals[4] = num;
-            vals[5] = cat;
-
-            //Tuple2<String, List<String>> result = new Tuple2<String, Iterable<String>>(key, );
-            return s;
-        });
-        */
+       // Step 3)
 
 
 
@@ -184,7 +147,7 @@ public class Cluster3D {
         return data.take(k);
     }
 
-    /* This method will sort each business into the most similar cluster. To do this, I plan to compare
+    /* The method, classify, will sort each business into the most similar cluster. To do this, I plan to compare
     each dimension (lat, lon, rating) and normalize the comparison.
 
     -90 <= lat <= 90
@@ -208,7 +171,7 @@ public class Cluster3D {
 
      */
 
-    public JavaPairRDD<String, Iterable<String>> classify(List<Tuple2<String, Iterable<String>>> classes, JavaPairRDD<String, Iterable<String>> data){
+    public static JavaPairRDD<String, Iterable<String>> classify(List<Tuple2<String, Iterable<String>>> classes, JavaPairRDD<String, Iterable<String>> data){
         JavaPairRDD<String, Iterable<String>> clusters = data.mapToPair(s->{
             //double[] comps = new double[classes.size()];
             double min = 10;
@@ -263,5 +226,83 @@ public class Cluster3D {
            return new Tuple2<String, Iterable<String>>(s._1, vals);
         });
         return clusters;
+    }
+
+    /* getMeans returns a list of dummy businesses, whose data represents the mean lat, long, and
+        rating for its cluster.
+
+        The JavaPairRDD, clusters, contains the following information...
+
+                Business -> ClusterID,
+                        State,
+                        latitude,
+                        longitude,
+                        Yelp rating,
+                        Number of reviews,
+                        Categories
+
+        How will I take an average of lat and lon?
+
+            for each lat_i:
+                lat_i = lat_i + 90
+                totalLat_i += lat_i
+            avgLat_i = (totalLat_i/numi) - 90
+
+            for each lon_i:
+                lon_i = lon_i + 180
+                totalLon_i += lon_i
+            avgLon_i = (totalLon_i/numi) - 180
+     */
+    public static List<Tuple2<String, Iterable<String>>> getMeans(JavaPairRDD<String, Iterable<String>> clusters){
+        // means will hold the following information for each cluster i=0-10
+        /*
+                Cluster_i ->    avgLat_i        = totalLat_i/numi
+                                avgLon_i        = totalLon_i/numi
+                                avgRating_i     = totalRating_i/numi
+                                numi
+         */
+        ArrayList<Tuple2<String, Iterable<String>>> means = new ArrayList<>(11);
+        for(int i = 0; i < 11; i++){
+            ArrayList<String> vals = new ArrayList<>(4);
+            vals.add(0, "0.0"); // totalLat_i
+            vals.add(1, "0.0"); // totalLon_i
+            vals.add(2,"0.0"); // totalRating_i
+            vals.add(3,"0"); // numi
+            Tuple2<String, Iterable<String>> item = new Tuple2<>("Cluster_" + i, vals);
+            means.add(i, item);
+        }
+
+        // keep track of how many elements are in each cluster.
+
+
+        clusters.mapToPair(s->{
+
+            // grab data from this business
+            Iterator<String> iter = s._2.iterator();
+            int cluster = Integer.parseInt(iter.next());
+            iter.next(); // state
+            double lat = Double.parseDouble(iter.next());
+            double lon = Double.parseDouble(iter.next());
+            double rating = Double.parseDouble(iter.next());
+
+            // grab the avg values
+            Tuple2<String, Iterable<String>> avg = means.get(cluster);
+            Iterator<String> iter2 = avg._2.iterator();
+            double totalLat = Double.parseDouble(iter2.next());
+            double totalLon = Double.parseDouble(iter2.next());
+            double totalRating = Double.parseDouble(iter2.next());
+            int count = Integer.parseInt(iter2.next());
+
+            // update avg values
+            lat += 90;
+            lon += 180;
+            totalLat += lat;
+            totalLon += lon;
+            totalRating += rating;
+            count++;
+
+            return s;
+        });
+        return null;
     }
 }
