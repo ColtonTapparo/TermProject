@@ -75,10 +75,11 @@ public class Cluster3D {
         // Step 2) classify each business in data according to the business in sample
         // which it is most similar to.
 
-       JavaPairRDD<String, Iterable<String>> clusters = classify(sample, data);
+        JavaPairRDD<String, Iterable<String>> clusters = classify(sample, data);
 
-       // Step 3)
+        // Step 3) Use the classification obtained in step 2 to recompute the vectors of means m(t+1)
 
+        List<Tuple2<String, Iterable<String>>> means = getMeans(data);
 
 
     }
@@ -301,8 +302,47 @@ public class Cluster3D {
             totalRating += rating;
             count++;
 
+            ArrayList<String> vals = new ArrayList<String>(4);
+            vals.add(0,Double.toString(totalLat));
+            vals.add(1,Double.toString(totalLon));
+            vals.add(2,Double.toString(totalRating));
+            vals.add(3,Integer.toString(count));
+
+            // update new vals in means
+            means.remove(cluster);
+            means.add(cluster, new Tuple2<String, Iterable<String>>("Cluster" + cluster, vals));
+
             return s;
         });
-        return null;
+
+        // calculate the means
+        for(int i = 0; i < 11; i++){
+            Tuple2<String, Iterable<String>> tmp = means.get(i);
+
+            // Extract values
+            Iterator<String> iter = tmp._2.iterator();
+            double totalLat = Double.parseDouble(iter.next());
+            double totalLon = Double.parseDouble(iter.next());
+            double totalRating = Double.parseDouble(iter.next());
+            int count = Integer.parseInt(iter.next());
+
+            // calculate averages
+            totalLat = (totalLat/count) - 90;
+            totalLon = (totalLon/count) - 180;
+            totalRating = totalRating/count;
+
+
+            // store the averages
+            ArrayList<String> avgs = new ArrayList<String>(4);
+            avgs.add(0, Double.toString(totalLat));
+            avgs.add(1, Double.toString(totalLon));
+            avgs.add(2, Double.toString(totalRating));
+            avgs.add(3, Integer.toString(count));
+            Tuple2<String, Iterable<String>> result = new Tuple2<String, Iterable<String>>(tmp._1, avgs);
+            means.remove(i);
+            means.add(i, result);
+        }
+
+        return means;
     }
 }
