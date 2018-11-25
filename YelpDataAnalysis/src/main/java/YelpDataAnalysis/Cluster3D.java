@@ -125,13 +125,13 @@ public class Cluster3D {
                 double lon2 = Double.parseDouble(iter2.next());
                 double rating2 = Double.parseDouble(iter2.next());
                 int count2 = Integer.parseInt(iter2.next());
-
+                // number of stars*(log(reviews)/log(7968)) where 7968 is the max number of reviews
                 lat1 = (lat1 + 90)/180;
                 lat2 = (lat2 + 90)/180;
                 lon1 = (lon1 + 180)/360;
                 lon2 = (lon2 + 180)/360;
-                rating1 = rating1/5;
-                rating2 = rating2/5;
+                rating1 = rating1 * (Math.log(count1)/Math.log(7968));
+                rating2 = rating2 * (Math.log(count1)/Math.log(7968));
 
                 nextDiff += Math.abs(lat1 - lat2);
                 nextDiff += Math.abs(lon1 - lon2);
@@ -240,7 +240,7 @@ public class Cluster3D {
     1 <= rating <= 5
 
     I shall normalize these values into a comparison between 0 & 1
-    and I will add these 3 valuse together to get a result between 0 & 3
+    and I will add these 3 values together to get a result between 0 & 3
    */
 
     // This returns a JavaPairRDD such that...
@@ -293,9 +293,10 @@ public class Cluster3D {
             double lat1Norm = Double.parseDouble(lat1);
             double lon1Norm = Double.parseDouble(lon1);
             double rating1Norm = Double.parseDouble(rating1);
+            int numReviews = Integer.parseInt(iter1.next());
             lat1Norm = (lat1Norm + 90)/180;
             lon1Norm = (lon1Norm + 180)/360;
-            rating1Norm = rating1Norm/5;
+            rating1Norm = rating1Norm * (Math.log(numReviews)/Math.log(7968))/5;
             double score1 = lat1Norm + lon1Norm + rating1Norm;
             for(int i = 0; i < classes.size(); i++){
                 Tuple2<String, Iterable<String>> tmp = classes.get(i);
@@ -314,6 +315,7 @@ public class Cluster3D {
                 double rating2Norm = Double.parseDouble(rating2);
                 lat2Norm = (lat2Norm + 90)/180;
                 lon2Norm = (lon2Norm + 180)/360;
+                //number of stars*(log(reviews)/log(7968)) where 7968 is the max number of reviews
                 rating2Norm = rating2Norm/5;
                 double score2 = lat2Norm + lon2Norm + rating2Norm;
 
