@@ -79,7 +79,7 @@ public class Cluster2D {
         return Math.sqrt(Math.pow(Math.abs(business.getX()-cluster.getX()),2) + Math.pow(Math.abs(business.getY()-cluster.getY()),2));
     }
 
-    public static JavaPairRDD<Coordinates, Iterable<Coordinates>> kmeans(JavaRDD<Coordinates> businesses, int k, int maxIterations) throws IOException {
+    public static JavaPairRDD<Coordinates, Iterable<Coordinates>> kmeans(JavaRDD<Coordinates> businesses, int k) throws IOException {
         List<Coordinates> initClusters = new ArrayList<>();
         JavaPairRDD<Coordinates, Iterable<Coordinates>> clusters = null;
 
@@ -88,7 +88,7 @@ public class Cluster2D {
             double randomStars = businesses.takeSample(false,1).get(0).getY();
             initClusters.add(new Coordinates("centroid" + m, (randomZip*10000.0), randomStars));
         }
-        for(int x = 0; x < maxIterations; x++) {
+        for(int x = 0; x < 10; x++) {
             List<Coordinates> finalInitClusters = initClusters;
             clusters = businesses.mapToPair(y -> {
                 Coordinates min = new Coordinates("x", 1000000.0, 1000000.0);
@@ -178,12 +178,12 @@ public class Cluster2D {
         });
     }
 
-    public static void findK(JavaRDD<Coordinates> businesses, int maxK, int iterations, int iterations2, String location, JavaSparkContext jsc) throws IOException{
+    public static void findK(JavaRDD<Coordinates> businesses, JavaSparkContext jsc) throws IOException{
         List<Tuple2<Integer, Double>> sse = new ArrayList<>();
-        for (int k = 1; k <= maxK; k++) {
+        for (int k = 1; k <= 25; k++) {
             JavaRDD<Double> average = null;
-            for(int n = 0; n < iterations; n++) {
-                JavaPairRDD<Coordinates, Iterable<Coordinates>> clusters = kmeans(businesses, k, iterations2);
+            for(int n = 0; n < 10; n++) {
+                JavaPairRDD<Coordinates, Iterable<Coordinates>> clusters = kmeans(businesses, k);
                 JavaRDD<Double> elbow = clusters.map(x -> {
                     Iterator<Coordinates> itr = x._2().iterator();
                     double total = 0;
@@ -201,7 +201,7 @@ public class Cluster2D {
             }
             sse.add(new Tuple2<>(k, average.reduce((a, b)-> a + b)/k));
         }
-        jsc.parallelize(sse).saveAsTextFile(location);
+        jsc.parallelize(sse).saveAsTextFile("2DClusterOutput");
     }
 
 }
