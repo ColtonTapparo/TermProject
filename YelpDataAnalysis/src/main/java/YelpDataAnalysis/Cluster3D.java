@@ -59,10 +59,20 @@ public class Cluster3D {
     Step 3) Use the classification obtained in step 2 to recompute the vectors of means m(t+1)
         For this, you will create
 
+    ================= RETURN VALUE =====================
+    kMeansCluster returns a JavaPairRDD<String, Iterable<String>> which contains the following information...
+
+             Business Name ->   Cluster (0 - 10),
+                                State,
+                                latitude,
+                                longitude,
+                                Yelp rating,
+                                Number of reviews,
+                                Categories
 
     */
 
-    public static void kMeansCluster(JavaPairRDD<String, Iterable<String>> data){
+    public static JavaPairRDD<String, Iterable<String>> kMeansCluster(JavaPairRDD<String, Iterable<String>> data){
         System.out.println("============================================================================= Print Data ===================================================================================");
 
         // Step 1)
@@ -74,14 +84,88 @@ public class Cluster3D {
 
         // Step 2) classify each business in data according to the business in sample
         // which it is most similar to.
-
-        JavaPairRDD<String, Iterable<String>> clusters = classify(sample, data);
+        for(int i = 0; i < 10; i++){
+            System.out.println("================================================================== Step 2 ==================================================================");
+        }
+        JavaPairRDD<String, Iterable<String>> clusters = classify(sample, data, true);
+        for(int i = 0; i < 10; i++){
+            System.out.println("================================================================== CHECK!!! ==================================================================");
+        }
+        for(int i = 0; i < 10; i++){
+            System.out.println("================================================================================================== " + clusters.collect().get(i)._2.toString() + "===================================================================");
+        }
 
         // Step 3) Use the classification obtained in step 2 to recompute the vectors of means m(t+1)
 
-        List<Tuple2<String, Iterable<String>>> means = getMeans(data);
+        List<Tuple2<String, Iterable<String>>> means = getMeans(clusters);
+
+        /* Steps 4 & 5)
+            Keep recomputing m(t+1). Add up the total difference in means between m(t) and m(t+1).
+            If the total difference in means is less than 0.05, the algorithm has finished
+            and the businesses have been sorted into their final cluster.
+        */
+        double epsilon = 0.001;
+        double diff = 3.00;
+        while(diff > epsilon){
+            List<Tuple2<String, Iterable<String>>> means1 = means;
+            clusters = classify(means, clusters, false);
+            List<Tuple2<String, Iterable<String>>> means2 = getMeans(clusters);
+            double nextDiff = 0;
+
+            for(int i = 0; i < means.size(); i++){
+                Tuple2<String, Iterable<String>> mean1 = means1.get(i);
+                Tuple2<String, Iterable<String>> mean2 = means2.get(i);
+                Iterator<String> iter1 = mean1._2.iterator();
+                Iterator<String> iter2 = mean2._2.iterator();
+                double lat1 = Double.parseDouble(iter1.next());
+                double lon1 = Double.parseDouble(iter1.next());
+                double rating1 = Double.parseDouble(iter1.next());
+                int count1 = Integer.parseInt(iter1.next());
+                double lat2 = Double.parseDouble(iter2.next());
+                double lon2 = Double.parseDouble(iter2.next());
+                double rating2 = Double.parseDouble(iter2.next());
+                int count2 = Integer.parseInt(iter2.next());
+                // number of stars*(log(reviews)/log(7968)) where 7968 is the max number of reviews
+                lat1 = (lat1 + 90)/180;
+                lat2 = (lat2 + 90)/180;
+                lon1 = (lon1 + 180)/360;
+                lon2 = (lon2 + 180)/360;
+                rating1 = rating1 * (Math.log(count1)/Math.log(7968));
+                rating2 = rating2 * (Math.log(count1)/Math.log(7968));
+
+                nextDiff += Math.abs(lat1 - lat2);
+                nextDiff += Math.abs(lon1 - lon2);
+                nextDiff += Math.abs(rating1 - rating2);
 
 
+            }
+            means = means2;
+            diff = nextDiff;
+        }
+
+        /* means contains...
+                Cluster_i ->    lat
+                                lon
+                                rating
+                                num
+
+         */
+
+        printClusters(clusters);
+
+        return clusters;
+
+    }
+
+    private static void printClusters(JavaPairRDD<String, Iterable<String>> clusters){
+        List<Tuple2<String, Iterable<String>>> list = clusters.collect();
+        for(int i = 0; i < list.size(); i++){
+            System.out.print(list.get(i)._1 + ":");
+            for(String s : list.get(i)._2){
+                System.out.print("\t" + s);
+            }
+            System.out.print("\n");
+        }
     }
 
     public static List<Tuple2<String, Iterable<String>>>sampleByCity(JavaPairRDD<String, Iterable<String>> data){
@@ -156,7 +240,7 @@ public class Cluster3D {
     1 <= rating <= 5
 
     I shall normalize these values into a comparison between 0 & 1
-    and I will add these 3 valuse together to get a result between 0 & 3
+    and I will add these 3 values together to get a result between 0 & 3
    */
 
     // This returns a JavaPairRDD such that...
@@ -172,28 +256,57 @@ public class Cluster3D {
 
      */
 
-    public static JavaPairRDD<String, Iterable<String>> classify(List<Tuple2<String, Iterable<String>>> classes, JavaPairRDD<String, Iterable<String>> data){
+    public static JavaPairRDD<String, Iterable<String>> classify(List<Tuple2<String, Iterable<String>>> classes, JavaPairRDD<String, Iterable<String>> data, boolean first){
         JavaPairRDD<String, Iterable<String>> clusters = data.mapToPair(s->{
             //double[] comps = new double[classes.size()];
             double min = 10;
             int targetCluster = 20;
             Iterator<String> iter1 = s._2().iterator();
-            iter1.next(); // state
+            if(!first){
+                String clst = iter1.next();
+                System.out.println("================================================== INITIAL CLUSTER: " + clst + " ===================================================================");
+                if(clst.length() > 3 || !clst.contains("[0-9]+")){
+                    return s;
+                }
+                targetCluster = Integer.parseInt(clst);
+            }
+
+
+            String state = iter1.next();
+            System.out.println("============================== STATE: " + state + "==============================================="); // state
+            if(state.length() > 3 || !iter1.hasNext()){
+                // This means that the data is corrupted and this is not actually a STATE, meaning the next iter.next()
+                // might not exist. Try to gloss over this...
+                return s;
+            }
             String lat1 = iter1.next();
             String lon1 = iter1.next();
             String rating1 = iter1.next();
+            System.out.println("======================================================== lat1: " + lat1 + "====================================================");
+            System.out.println("======================================================== lon1: " + lon1 + "====================================================");
+            System.out.println("======================================================== rating1: " + rating1 + "====================================================");
+
+            // Skip past entries without lat and lon
+            if(lat1.contains("None")){
+                return s;
+            }
             double lat1Norm = Double.parseDouble(lat1);
             double lon1Norm = Double.parseDouble(lon1);
             double rating1Norm = Double.parseDouble(rating1);
+            int numReviews = Integer.parseInt(iter1.next());
             lat1Norm = (lat1Norm + 90)/180;
             lon1Norm = (lon1Norm + 180)/360;
-            rating1Norm = rating1Norm/5;
+            rating1Norm = rating1Norm * (Math.log(numReviews)/Math.log(7968))/5;
             double score1 = lat1Norm + lon1Norm + rating1Norm;
             for(int i = 0; i < classes.size(); i++){
                 Tuple2<String, Iterable<String>> tmp = classes.get(i);
 
                 Iterator<String> iter2 = tmp._2.iterator();
-                iter2.next(); // state
+                if(first == true){
+                    //iter2.next(); // clusterID (THERE IS NO CLUSTERID YET
+                    iter2.next(); // state
+                }
+
                 String lat2 = iter2.next();
                 String lon2 = iter2.next();
                 String rating2 = iter2.next();
@@ -202,13 +315,17 @@ public class Cluster3D {
                 double rating2Norm = Double.parseDouble(rating2);
                 lat2Norm = (lat2Norm + 90)/180;
                 lon2Norm = (lon2Norm + 180)/360;
+                //number of stars*(log(reviews)/log(7968)) where 7968 is the max number of reviews
                 rating2Norm = rating2Norm/5;
                 double score2 = lat2Norm + lon2Norm + rating2Norm;
 
                 double score = Math.abs(score1 - score2);
+                //System.out.println("======================================================= SCORE: " + score + " ===========================================================");
                 if(score < min){
                     min = score;
                     targetCluster = i;
+                }else{
+
                 }
 
 
@@ -217,6 +334,7 @@ public class Cluster3D {
 
             // Write the new target cluster as the first element in the Iterable<String>.
             ArrayList<String> vals = new ArrayList<String>();
+            System.out.println("=========================================================== Target Cluster: " + targetCluster + "==============================================================");
             vals.add("" + targetCluster);
             Iterator<String> iter = s._2.iterator();
             while(iter.hasNext()){

@@ -51,7 +51,9 @@ public class Driver {
 		System.out.println("================================================== data size: " + data.collect().size() + " ======================================================");
 		System.out.println("====================================================================== Begin 3D Clustering ========================================================");
 		// run 3DClustering
-		Cluster3D.kMeansCluster(data);
+		JavaPairRDD<String, Iterable<String>> result3D = Cluster3D.kMeansCluster(data);
+		result3D.saveAsTextFile("output3D");
+		System.out.println("DONE");
 	}
 
 	private static String getLocalCurrentDate() {
