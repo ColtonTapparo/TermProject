@@ -24,7 +24,7 @@ public class Driver {
 		JavaRDD<String> web_map = spark.read().textFile(args[0]).javaRDD();
 
 		JavaPairRDD<String, Iterable<String>> links = web_map.mapToPair(s -> {
-			String[] parts = COLON.split(s);
+			String[] parts = {s.substring(0, s.lastIndexOf(":")), s.substring(s.lastIndexOf(":")+1)};
 			return new Tuple2<>(parts[0], Arrays.asList(parts[1].trim().split("\t")));
 		});
 //		for (Tuple2<String, Iterable<String>> o : links.collect()) {
