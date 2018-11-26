@@ -12,10 +12,10 @@ import org.joda.time.LocalDate;
 
 import scala.Tuple2;
 
-public class Driver1 {
+public class Driver {
 
 	//for packaging
-	private static final Logger logger = Logger.getLogger(Driver1.class);
+	private static final Logger logger = Logger.getLogger(Driver.class);
 	private static final Pattern COLON = Pattern.compile("\\:");
 	private static final String master = "spark://baton-rouge:30317";
 	private static final String local = "local";
