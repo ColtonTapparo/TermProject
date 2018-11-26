@@ -1,4 +1,4 @@
-package YelpDataAnalysis;
+package main.java.YelpDataAnalysis;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,10 +12,10 @@ import org.joda.time.LocalDate;
 
 import scala.Tuple2;
 
-public class Driver {
+public class Driver1 {
 
 	//for packaging
-	private static final Logger logger = Logger.getLogger(Driver.class);
+	private static final Logger logger = Logger.getLogger(Driver1.class);
 	private static final Pattern COLON = Pattern.compile("\\:");
 	private static final String master = "spark://baton-rouge:30317";
 	private static final String local = "local";
@@ -24,7 +24,7 @@ public class Driver {
 		JavaRDD<String> web_map = spark.read().textFile(args[0]).javaRDD();
 
 		JavaPairRDD<String, Iterable<String>> links = web_map.mapToPair(s -> {
-			String[] parts = COLON.split(s);
+			String[] parts = {s.substring(0, s.lastIndexOf(":")), s.substring(s.lastIndexOf(":")+1)};
 			return new Tuple2<>(parts[0], Arrays.asList(parts[1].trim().split("\t")));
 		});
 //		for (Tuple2<String, Iterable<String>> o : links.collect()) {
@@ -64,5 +64,4 @@ public class Driver {
 		return date.toString();
 
 	}
-
 }
