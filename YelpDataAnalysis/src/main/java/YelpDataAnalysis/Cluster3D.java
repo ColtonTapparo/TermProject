@@ -2,12 +2,17 @@ package YelpDataAnalysis;
 
 import org.apache.spark.api.java.JavaPairRDD;
 import org.codehaus.janino.Java;
+
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
+
 import scala.Tuple2;
 
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Cluster3D {
 
@@ -77,8 +82,8 @@ public class Cluster3D {
 
         // Step 1)
         // random sampling
-        List<Tuple2<String, Iterable<String>>> sample = randomSample(data, 11);
-
+//        List<Tuple2<String, Iterable<String>>> sample = randomSample(data, 11);
+        List<Tuple2<String, Iterable<String>>> sample = sampleByCity(data);
 
 
 
@@ -168,7 +173,7 @@ public class Cluster3D {
         }
     }
 
-	public static List<Tuple2<String, String>>sampleByCity(JavaPairRDD<String, Iterable<String>> data){
+	public static List<Tuple2<String, Iterable<String>>>sampleByCity(JavaPairRDD<String, Iterable<String>> data){
 		/*This is something I was working on that should be close to what we'll need to sample by city.
         I never finished it though, because I didn't have the list of cities until sam supplied them.
         Here are the cities...
@@ -182,24 +187,33 @@ public class Cluster3D {
 			return new Tuple2<String, String>(province, s._1());
 		});
 
-		data = provinceClusters.groupByKey();
+		JavaPairRDD<String, Iterable<String>> d = provinceClusters.groupByKey();
 //		data.foreach(s -> System.out.println(s._1() + ": " + Iterators.size(s._2().iterator())));
-		provinceClusters = data.mapToPair(s -> {
+		provinceClusters = d.mapToPair(s -> {
 			List<String> list = Lists.newArrayList(s._2());
 			int num = ThreadLocalRandom.current().nextInt(0, Iterators.size(s._2().iterator()));
 			return new Tuple2<String, String>(s._1(),list.get(num));
 		});
 		List<Tuple2<String, String>> cluster = new ArrayList<Tuple2<String, String>>();
-		List<Tuple2<String, String>> tmp = provinceClusters.collect();
-		for (Tuple2<String, String> t : tmp) {
+		List<Tuple2<String, String>> tmp1 = provinceClusters.collect();
+		for (Tuple2<String, String> t : tmp1) {
 			for (String s : cities) {
 				if (s.equalsIgnoreCase(t._1())) {
 					cluster.add(t);
 				}
 			}
 		}
-		return cluster;
-//		cluster.forEach(s -> System.out.println(s));
+		List<Tuple2<String, Iterable<String>>> output = new ArrayList<Tuple2<String, Iterable<String>>>();
+		List<Tuple2<String, Iterable<String>>> tmp2 = data.collect();
+		for (Tuple2<String, Iterable<String>> t : tmp2) {
+			for (Tuple2<String, String> s : cluster) {
+				if (s._2().equalsIgnoreCase(t._1())) {
+					output.add(t);
+				}
+			}
+		}
+//		output.forEach(s -> System.out.println(s));
+		return output;
 	}
 	
     public static List<Tuple2<String,Iterable<String>>> randomSample(JavaPairRDD<String, Iterable<String>> data, int k){

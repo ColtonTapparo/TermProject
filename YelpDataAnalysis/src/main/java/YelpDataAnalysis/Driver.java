@@ -28,7 +28,7 @@ public class Driver {
 			return new Tuple2<>(parts[0], Arrays.asList(parts[1].trim().split("\t")));
 		});
 //		for (Tuple2<String, Iterable<String>> o : links.collect()) {
-//			System.out.print(o._1() + ": ");
+//			System.out.print(o._1());
 //			for (String s : o._2()) {
 //				System.out.print(s + "\t");
 //			}
