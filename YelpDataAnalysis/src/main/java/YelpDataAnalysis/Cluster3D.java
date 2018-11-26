@@ -84,66 +84,40 @@ public class Cluster3D {
 
     }
 
-    public static List<Tuple2<String, Iterable<String>>>sampleByCity(JavaPairRDD<String, Iterable<String>> data){
-        /*This is something I was working on that should be close to what we'll need to sample by city.
+	public static List<Tuple2<String, String>>sampleByCity(JavaPairRDD<String, Iterable<String>> data){
+		/*This is something I was working on that should be close to what we'll need to sample by city.
         I never finished it though, because I didn't have the list of cities until sam supplied them.
         Here are the cities...
+		 */
 
-        Calgary AB Canada
-        Toronto ON Canada
-        Montreal QC Canada
-        Las Vegas NV US
-        Phoenix AZ US
-        Pittsburgh PA US
-        Cleveland OH US
-        Madison WI US
-        Charlotte NC US
-        Champaign IL US
-        Scarborough NYK UK
+		String[] cities = {"AB","ON","QC","NV","AZ","PA","OH","WI","NC","IL","NYK"};
+		JavaPairRDD<String, String> provinceClusters = data.mapToPair(s->{
+			Iterator<String> iter1 = s._2().iterator();
+			String province = iter1.next(); // state
 
-        //      Sample by state
-        JavaPairRDD<String,Iterable<String>> stateMap = data.mapToPair(s -> {
-            Iterator iter = s._2.iterator();
-            String key = null;
-            String lat = null;
-            String lon = null;
-            String rating = null;
-            String num = null;
-            String cat = null;
-            int i = 0;
+			return new Tuple2<String, String>(province, s._1());
+		});
 
-            while(iter.hasNext()){
-                String next = iter.next().toString();
-                if(i==0){
-                    key = next;
-                }else if(i == 1){
-                    lat = next;
-                }else if(i == 2){
-                    lon = next;
-                }else if(i == 3){
-                    rating = next;
-                }else if(i == 4){
-                    num = next;
-                }else if(i == 5){
-                    cat = next;
-                }
-                i++;
-            }
-
-            String[] vals = new String[6];
-            vals[0] = s._1;
-            vals[1] = lat;
-            vals[2] = lon;
-            vals[3] = rating;
-            vals[4] = num;
-            vals[5] = cat;
-
-            //Tuple2<String, List<String>> result = new Tuple2<String, Iterable<String>>(key, );
-            return s;
-        });
-        */
-        return null;
-    }
+		data = provinceClusters.groupByKey();
+//		data.foreach(s -> System.out.println(s._1() + ": " + Iterators.size(s._2().iterator())));
+		provinceClusters = data.mapToPair(s -> {
+			List<String> list = Lists.newArrayList(s._2());
+			int num = ThreadLocalRandom.current().nextInt(0, Iterators.size(s._2().iterator()));
+			return new Tuple2<String, String>(s._1(),list.get(num));
+		});
+		List<Tuple2<String, String>> cluster = new ArrayList<Tuple2<String, String>>();
+		List<Tuple2<String, String>> tmp = provinceClusters.collect();
+		for (Tuple2<String, String> t : tmp) {
+			for (String s : cities) {
+				if (s.equalsIgnoreCase(t._1())) {
+					cluster.add(t);
+				}
+			}
+		}
+		return cluster;
+//		cluster.forEach(s -> System.out.println(s));
+	}
+	
     public static List<Tuple2<String,Iterable<String>>> randomSample(JavaPairRDD<String, Iterable<String>> data, int k){
         return data.take(k);
     }
