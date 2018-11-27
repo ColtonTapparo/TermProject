@@ -82,23 +82,17 @@ public class Cluster3D {
 
         // Step 1)
         // random sampling
-//        List<Tuple2<String, Iterable<String>>> sample = randomSample(data, 11);
+        //List<Tuple2<String, Iterable<String>>> sample = randomSample(data, 11);
         List<Tuple2<String, Iterable<String>>> sample = sampleByCity(data);
+
 
 
 
         // Step 2) classify each business in data according to the business in sample
         // which it is most similar to.
-        for(int i = 0; i < 10; i++){
-            System.out.println("================================================================== Step 2 ==================================================================");
-        }
+
         JavaPairRDD<String, Iterable<String>> clusters = classify(sample, data, true);
-        for(int i = 0; i < 10; i++){
-            System.out.println("================================================================== CHECK!!! ==================================================================");
-        }
-        for(int i = 0; i < 10; i++){
-            System.out.println("================================================================================================== " + clusters.collect().get(i)._2.toString() + "===================================================================");
-        }
+
 
         // Step 3) Use the classification obtained in step 2 to recompute the vectors of means m(t+1)
 
@@ -261,7 +255,7 @@ public class Cluster3D {
 
 
             String state = iter1.next();
-            System.out.println("============================== STATE: " + state + "==============================================="); // state
+            //System.out.println("============================== STATE: " + state + "==============================================="); // state
             if(state.length() > 3 || !iter1.hasNext()){
                 // This means that the data is corrupted and this is not actually a STATE, meaning the next iter.next()
                 // might not exist. Try to gloss over this...
@@ -270,9 +264,9 @@ public class Cluster3D {
             String lat1 = iter1.next();
             String lon1 = iter1.next();
             String rating1 = iter1.next();
-            System.out.println("======================================================== lat1: " + lat1 + "====================================================");
-            System.out.println("======================================================== lon1: " + lon1 + "====================================================");
-            System.out.println("======================================================== rating1: " + rating1 + "====================================================");
+            //System.out.println("======================================================== lat1: " + lat1 + "====================================================");
+            //System.out.println("======================================================== lon1: " + lon1 + "====================================================");
+            //System.out.println("======================================================== rating1: " + rating1 + "====================================================");
 
             // Skip past entries without lat and lon
             if(lat1.contains("None")){
@@ -322,7 +316,7 @@ public class Cluster3D {
 
             // Write the new target cluster as the first element in the Iterable<String>.
             ArrayList<String> vals = new ArrayList<String>();
-            System.out.println("=========================================================== Target Cluster: " + targetCluster + "==============================================================");
+           // System.out.println("=========================================================== Target Cluster: " + targetCluster + "==============================================================");
             vals.add("" + targetCluster);
             Iterator<String> iter = s._2.iterator();
             while(iter.hasNext()){
